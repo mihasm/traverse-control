@@ -1,1 +1,8 @@
 pyserial
+pygame
+tqdm
+numpy
+scipy
+matplotlib
+mpldatacursor
+sympy
