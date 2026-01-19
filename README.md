@@ -28,7 +28,7 @@ A Python-based control system for wind tunnel measurements using the ISEL IMC-S8
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/mihasm/traverse-control-.git
+   git clone https://github.com/mihasm/traverse-control.git
    cd traverse-control
    ```
 
