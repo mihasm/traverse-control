@@ -13,7 +13,6 @@ import os, re, os.path
 
 """
 Author: Miha Smrekar
-Email: xmiha.xsmrekar@gmail.com
 
 Ta modul je namenjen procesiranju podatkov meritev, opravljenih s pomocjo traverznega sistema,
 in anemometra, ki shranjuje podatke v XLS datoteko.

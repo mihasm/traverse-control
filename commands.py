@@ -49,8 +49,8 @@ Date: December, 2018
         a.2) Check that pip is working
     b) Install necessary requirements (serial module) by moving into the software folder and running "pip install -r requirements.txt".
     c) Plug in the USB cable (RS232) into the computer and into the controller.
-    d) Find the right port of the usb cable ("COM1-9" on Windows - Device Manager / "etcx" on Linux).
-    e) Change the port in this script by editing the initialization portion of the serial module.
+    d) Find the right port of the usb cable ("COM1-9" on Windows - Device Manager / "/dev/ttyUSB0" or similar on Linux).
+    e) Specify the port when creating the Traverse object: traverse = Traverse(port='COM9')
     f) Using bash/cmd, move into the software folder, that contains this script,
         and start the python interpreter by typing >>python and pressing Enter.
     g) Import the functions from this script and the serial object into the interpreter (RAM),
@@ -76,32 +76,65 @@ Date: December, 2018
 import serial
 import time
 import os
+import logging
 import contextlib
 with contextlib.redirect_stdout(None):
     from pygame import mixer
 import tqdm
 import numpy
 
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 class Traverse:
-    def __init__(self):
-        #This is the initialization portion of the serial module.
-        self.ser = serial.Serial(port='COM9',baudrate=19200,parity=serial.PARITY_NONE,stopbits=serial.STOPBITS_ONE,timeout=1)
+    def __init__(self, port='COM9'):
+        """Initialize the traverse controller.
 
-        self.mixer = mixer
-        # This module is used to play a sound when a plane traversing is finished.
-        self.mixer.init()
-        self.mixer.music.load('sound.mp3')
-
-
-    def initialize(self,num_axes=3,controller=0):
+        Args:
+            port (str): Serial port name (e.g., 'COM9' on Windows, '/dev/ttyUSB0' on Linux)
         """
-        Initializes the controller and sets the number of axes.
+        try:
+            logger.info(f"Connecting to serial port: {port}")
+            self.ser = serial.Serial(
+                port=port,
+                baudrate=19200,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                timeout=1
+            )
+            logger.info("Serial connection established")
+        except serial.SerialException as e:
+            logger.error(f"Failed to open serial port {port}: {e}")
+            raise
 
-        num_axes is an int between 1 and 3
-        1 ... x
-        2 ... x,y
-        3 ... x,y,z
-        controller is 0 by default
+        # Initialize pygame mixer for audio notifications
+        try:
+            self.mixer = mixer
+            self.mixer.init()
+            # Check if sound.mp3 exists before loading
+            if os.path.exists('sound.mp3'):
+                self.mixer.music.load('sound.mp3')
+                logger.info("Audio notification system initialized")
+            else:
+                logger.warning("sound.mp3 not found - audio notifications disabled")
+        except Exception as e:
+            logger.warning(f"Failed to initialize audio system: {e}")
+            self.mixer = None
+
+
+    def initialize(self, num_axes=3, controller=0):
+        """Initialize the controller and set the number of axes.
+
+        Args:
+            num_axes (int): Number of axes to enable (1=x, 2=x,y, 3=x,y,z)
+            controller (int): Controller number (default: 0)
+
+        Returns:
+            bytes: Controller response
+
+        Raises:
+            Exception: If num_axes is not between 1 and 3
         """
         num_axes = int(num_axes)
         if num_axes == 1:
@@ -140,26 +173,36 @@ class Traverse:
         If wait is False, then we assume that the command transmitted
                     does not require a response from the controller.
         """
+        try:
+            if print_raw_commands:
+                logger.debug(f"TX: {raw_command}")
 
-        if print_raw_commands:
-            print("TX",raw_command)
+            #Sending the command
+            self.ser.write(raw_command)
 
-        #Sending the command
-        self.ser.write(raw_command)
+            #Reading the response
+            raw_response = self.ser.read_until(b"\r")
 
-        #Reading the response
-        raw_response = self.ser.read_until("\r")
+            #Used to wait for the response
+            if wait:
+                #Read the responses until length of a response is greater than zero.
+                while len(raw_response) == 0:
+                    raw_response = self.ser.read_until(b"\r")
+                    if self.ser.timeout and len(raw_response) == 0:
+                        logger.warning("Timeout waiting for controller response")
+                        break
 
-        #Used to wait for the response
-        if wait == True:
-            #Read the responses until length of a response is greater than zero.
-            while len(raw_response) == 0:
-                raw_response = self.ser.read_until("\r")
+            if print_raw_commands:
+                logger.debug(f"RX: {raw_response}")
 
-        if print_raw_commands:
-            print("RX",raw_response)
+            return raw_response
 
-        return raw_response
+        except serial.SerialException as e:
+            logger.error(f"Serial communication error: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error in transmit_command: {e}")
+            raise
 
     def error_check_response(self,response):
         """
@@ -224,11 +267,23 @@ class Traverse:
         speed_xyz=(10000,10000,10000),
         pos_z2=0,speed_z2=20,
         controller=0,axes=3):
+        """Execute an absolute movement to specified coordinates.
 
-        """
-        Executes an absolute movement.
-        Default speed for all axes is 10000.
-        Maximum value of position is 1000 for each axis.
+        Args:
+            pos_x (float): X coordinate in millimeters (0-1000)
+            pos_y (float): Y coordinate in millimeters (0-1000)
+            pos_z (float): Z coordinate in millimeters (0-1000)
+            speed_xyz (tuple): Speed for X,Y,Z axes (default: 10000 for all)
+            pos_z2 (float): Secondary Z position (default: 0)
+            speed_z2 (float): Secondary Z speed (default: 20)
+            controller (int): Controller number (default: 0)
+            axes (int): Number of axes (default: 3)
+
+        Returns:
+            bytes: Controller response
+
+        Raises:
+            Exception: If coordinates are outside valid range (0-1000mm)
         """
         #print("Executing absolute movement")
 
@@ -276,15 +331,22 @@ class Traverse:
 
 
     def traverse_plane(self,x1,y1,x2,y2,st_x,st_y,delay=10,plane="zy",offset_write_x=0,offset_write_y=0,offset_write_z=0):
-        """
-        Moves the traverse system along a plane using the shortest path.
+        """Move the traverse system along a plane using a grid pattern.
 
-        Plane can be xy,yx,xz,zx,yz,zy.
+        This method performs automated measurement traversal, creating timestamped
+        position files and playing a completion sound when finished.
 
-        _min determines the first coordinate pair (based on plane)
-        _max determines the last coordinate pair (based on plane)
-        step determines the step size
-        delay means the time that the traverse system is stopped in a single point in space.
+        Args:
+            x1, y1 (float): Starting coordinates in the plane (mm)
+            x2, y2 (float): Ending coordinates in the plane (mm)
+            st_x, st_y (int): Number of steps in X and Y directions
+            delay (float): Delay time at each measurement point (seconds)
+            plane (str): Plane to traverse ('xy', 'yx', 'xz', 'zx', 'yz', 'zy')
+            offset_write_x, offset_write_y, offset_write_z (float): Coordinate offsets for data logging
+
+        Note:
+            Creates measurement files in 'meritve_' directory with timestamps.
+            Plays audio notification when traversal is complete.
         """
         lst_xyz = self.generate_path(x1,y1,x2,y2,st_x,st_y,plane)
         child_folder_name = "meritve_"+time.strftime("%d_%m_%Y", time.localtime())
