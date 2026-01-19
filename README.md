@@ -161,20 +161,6 @@ procesiranje.izrisi_tocke(points_dict, "path/to/casi_file", "path/to/measurement
 - Data format: XLS files from anemometer
 - Time synchronization: Automatic timestamp correlation
 
-## File Structure
-
-```
-traverse-control/
-├── commands.py              # Motor controller interface
-├── procesiranje.py          # Data processing and visualization
-├── wind_interpolation.py    # Wind field modeling
-├── test_legend_picking.py   # GUI test application
-├── requirements.txt         # Python dependencies
-├── sound.mp3               # Completion notification
-├── README.md               # This file
-└── .gitignore              # Git ignore patterns
-```
-
 ## Troubleshooting
 
 ### Serial Connection Issues
