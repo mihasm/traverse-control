@@ -9,23 +9,19 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md'), encoding='utf-8'
     long_description = f.read()
 
 setup(
-    name='serial-koordinatka',
+    name='traverse-control',
     version='1.0.0',
     description='Python control system for ISEL IMC-S8 motorized traverse in wind tunnel measurements',
     long_description=long_description,
     long_description_content_type='text/markdown',
     author='Miha Smrekar',
     author_email='',  # Removed for privacy
-    url='https://github.com/yourusername/serial-koordinatka',
+    url='https://github.com/mihasm/traverse-control-',
     packages=find_packages(),
     py_modules=['commands', 'procesiranje', 'wind_interpolation'],
     include_package_data=True,
-    package_data={
-        '': ['sound.mp3'],
-    },
     install_requires=[
         'pyserial>=3.0',
-        'pygame>=2.0.0',
         'numpy>=1.19.0',
         'scipy>=1.5.0',
         'matplotlib>=3.3.0',
@@ -50,7 +46,7 @@ setup(
     python_requires='>=3.6',
     entry_points={
         'console_scripts': [
-            'koordinatka-init=commands:initialize_system',
+            'traverse-init=commands:initialize_system',
         ],
     },
 )

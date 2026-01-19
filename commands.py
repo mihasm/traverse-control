@@ -77,9 +77,6 @@ import serial
 import time
 import os
 import logging
-import contextlib
-with contextlib.redirect_stdout(None):
-    from pygame import mixer
 import tqdm
 import numpy
 
@@ -108,19 +105,6 @@ class Traverse:
             logger.error(f"Failed to open serial port {port}: {e}")
             raise
 
-        # Initialize pygame mixer for audio notifications
-        try:
-            self.mixer = mixer
-            self.mixer.init()
-            # Check if sound.mp3 exists before loading
-            if os.path.exists('sound.mp3'):
-                self.mixer.music.load('sound.mp3')
-                logger.info("Audio notification system initialized")
-            else:
-                logger.warning("sound.mp3 not found - audio notifications disabled")
-        except Exception as e:
-            logger.warning(f"Failed to initialize audio system: {e}")
-            self.mixer = None
 
 
     def initialize(self, num_axes=3, controller=0):
@@ -388,10 +372,7 @@ class Traverse:
         f.write(point_end_str)
         print(point_end_str.strip())
         f.close()
-        while True:
-            print('Execution finished!')
-            self.mixer.music.play()
-            time.sleep(5)
+        print('Execution finished!')
             
         return
 

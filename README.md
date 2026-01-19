@@ -1,4 +1,4 @@
-# Serial Koordinatka (Coordinate System)
+# Traverse Control
 
 A Python-based control system for wind tunnel measurements using the ISEL IMC-S8 motorized traverse mechanism. This software enables automated data collection and processing of wind speed and temperature measurements across configurable measurement planes.
 
@@ -28,8 +28,8 @@ A Python-based control system for wind tunnel measurements using the ISEL IMC-S8
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/serial-koordinatka.git
-   cd serial-koordinatka
+   git clone https://github.com/mihasm/traverse-control-.git
+   cd traverse-control
    ```
 
 2. Install Python dependencies:
@@ -164,7 +164,7 @@ procesiranje.izrisi_tocke(points_dict, "path/to/casi_file", "path/to/measurement
 ## File Structure
 
 ```
-serial-koordinatka/
+traverse-control/
 ├── commands.py              # Motor controller interface
 ├── procesiranje.py          # Data processing and visualization
 ├── wind_interpolation.py    # Wind field modeling
